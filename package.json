@@ -1,0 +1,18 @@
+{
+  "name": "chambamatch-backend",
+  "version": "1.0.0",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.4",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.0.0",
+    "multer": "^2.4.0"
+  }
+}
