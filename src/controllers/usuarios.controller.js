@@ -8,10 +8,16 @@ export const obtenerUsuarios = async (req, res) => {
   try {
     const snapshot = await db.collection("usuarios").get();
 
-    const usuarios = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const usuarios = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Asignamos fotoUrl considerando avatarUrl como prioridad
+        fotoUrl: data.avatarUrl || data.fotoUrl || null,
+        avatarUrl: data.avatarUrl || data.fotoUrl || null,
+      };
+    });
 
     res.status(200).json(usuarios);
   } catch (error) {
@@ -37,8 +43,9 @@ export const eliminarUsuario = async (req, res) => {
       });
     }
 
-    // Eliminar la foto de perfil de Supabase si existe
-    const fotoUrl = doc.data().fotoUrl;
+    const data = doc.data();
+    // Revisa en ambas propiedades la URL de la imagen
+    const fotoUrl = data.avatarUrl || data.fotoUrl;
     if (fotoUrl) {
       try {
         const ruta = fotoUrl.split(`/${BUCKET_NAME}/`)[1];
@@ -120,14 +127,16 @@ export const registrarUsuario = async (req, res) => {
       telefono,
       rol, // 'cliente' o 'tecnico'
       especialidad: especialidad || "N/A",
-      fotoUrl,
+      avatarUrl: fotoUrl, // Guardamos en avatarUrl
+      fotoUrl: fotoUrl,   // Mantenemos fotoUrl para retrocompatibilidad
       fechaRegistro: new Date().toISOString(),
     });
 
     res.status(201).json({
       mensaje: `¡Usuario registrado con éxito! ID: ${docRef.id}`,
       id: docRef.id,
-      fotoUrl,
+      avatarUrl: fotoUrl,
+      fotoUrl: fotoUrl,
     });
   } catch (error) {
     console.error("Error al registrar usuario:", error);
@@ -160,7 +169,8 @@ export const actualizarUsuario = async (req, res) => {
       });
     }
 
-    const fotoAntiguaUrl = doc.data().fotoUrl;
+    const data = doc.data();
+    const fotoAntiguaUrl = data.avatarUrl || data.fotoUrl;
     let fotoUrl = fotoAntiguaUrl;
 
     // Si viene una imagen nueva
@@ -211,19 +221,21 @@ export const actualizarUsuario = async (req, res) => {
       }
     }
 
-    // 3. Actualizar los datos en Firestore
+    // 3. Actualizar los datos en Firestore (guardando tanto avatarUrl como fotoUrl)
     await docRef.update({
       nombre,
       correo,
       telefono,
       rol,
       especialidad: especialidad || "N/A",
-      fotoUrl,
+      avatarUrl: fotoUrl,
+      fotoUrl: fotoUrl,
     });
 
     res.status(200).json({
       mensaje: `¡Usuario actualizado con éxito! ID: ${id}`,
-      fotoUrl,
+      avatarUrl: fotoUrl,
+      fotoUrl: fotoUrl,
     });
   } catch (error) {
     console.error("Error al actualizar usuario:", error);
