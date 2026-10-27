@@ -3,31 +3,35 @@ import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Obtener el directorio actual de forma segura en ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Construir la ruta absoluta exacta hacia serviceAccountKey.json en la raíz del proyecto
-const serviceAccountPath = path.join(__dirname, '../../serviceAccountKey.json');
-
 let serviceAccount = null;
 
-try {
-  if (!existsSync(serviceAccountPath)) {
-    console.error(`❌ No se encontró el archivo serviceAccountKey.json en: ${serviceAccountPath}`);
-  } else {
-    const fileContent = readFileSync(serviceAccountPath, 'utf8');
-    serviceAccount = JSON.parse(fileContent);
+// 1. Intentar cargar desde Variable de Entorno (Ideal para Render)
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (e) {
+    console.error('Error al parsear FIREBASE_SERVICE_ACCOUNT de .env:', e.message);
   }
-} catch (error) {
-  console.error('❌ Error al leer o parsear el archivo serviceAccountKey.json:', error.message);
+} 
+
+// 2. Si no hay variable de entorno, intentar leer el archivo local
+if (!serviceAccount) {
+  const serviceAccountPath = path.join(__dirname, '../../serviceAccountKey.json');
+  if (existsSync(serviceAccountPath)) {
+    serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+  }
 }
 
 if (!admin.apps.length && serviceAccount) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
-  console.log('✓ Firebase Admin inicializado correctamente.');
+  console.log('✓ Firebase Admin autenticado correctamente.');
+} else if (!serviceAccount) {
+  console.error('❌ NO SE ENCONTRARON CREDENCIALES DE FIREBASE ADMIN.');
 }
 
 const db = admin.firestore();
